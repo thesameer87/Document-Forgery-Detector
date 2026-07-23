@@ -83,6 +83,68 @@ class ForgeryDataset(Dataset):
         return tensor, label
 
 
+class RobustnessDataset(Dataset):
+    """Dataset that applies corruptions to raw images and computes ELA on-the-fly.
+    
+    Used strictly for robustness evaluation to ensure physical correctness
+    (corruptions are applied to images, not to already-computed residual maps).
+    """
+
+    def __init__(
+        self,
+        image_paths: list,
+        labels: list,
+        transform=None,
+        input_size: int = 224,
+        ela_quality: int = 90,
+        ela_scale: int = 15,
+        mean: tuple = (0.485, 0.456, 0.406),
+        std: tuple = (0.229, 0.224, 0.225),
+    ) -> None:
+        assert len(image_paths) == len(labels)
+        self.image_paths = image_paths
+        self.labels = labels
+        self.transform = transform
+        self.input_size = input_size
+        self.ela_quality = ela_quality
+        self.ela_scale = ela_scale
+        self.mean = np.array(mean, dtype=np.float32).reshape(1, 1, 3)
+        self.std = np.array(std, dtype=np.float32).reshape(1, 1, 3)
+
+    def __len__(self) -> int:
+        return len(self.image_paths)
+
+    def __getitem__(self, idx: int):
+        from src.ela import compute_ela
+        import cv2
+
+        path = self.image_paths[idx]
+        label = self.labels[idx]
+
+        # 1. Load raw image
+        # cv2 loads as BGR, we convert to RGB for Albumentations/PIL
+        img_bgr = cv2.imread(path)
+        if img_bgr is None:
+            raise FileNotFoundError(f"Failed to read image: {path}")
+        img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
+        # 2. Apply corruption (if any)
+        if self.transform is not None:
+            augmented = self.transform(image=img_rgb)
+            img_rgb = augmented["image"]
+
+        # 3. Compute ELA on the fly (requires PIL image or numpy array)
+        ela_map = compute_ela(img_rgb, quality=self.ela_quality, scale=self.ela_scale)
+        
+        # 4. Resize and normalize
+        ela_pil = Image.fromarray(ela_map).resize((self.input_size, self.input_size), Image.BILINEAR)
+        arr = np.array(ela_pil, dtype=np.float32) / 255.0
+        arr = (arr - self.mean) / self.std
+        tensor = torch.from_numpy(arr).permute(2, 0, 1)
+
+        return tensor, label
+
+
 # ── Data collection & splitting ──────────────────────────────────────────────
 
 def collect_ela_paths(ela_dir: str, extensions: set) -> tuple:
@@ -216,3 +278,49 @@ def create_data_loaders(
         "num_test": len(X_test),
     }
     return loaders
+
+
+def get_test_split_raw_paths(
+    config: Optional[dict] = None,
+    *,
+    config_path: str = "configs/config.yaml",
+) -> tuple:
+    """Retrieve the exact raw image paths corresponding to the test split.
+    
+    This guarantees that the robustness evaluation runs on the exact same
+    samples as the clean evaluation by reversing the ELA map paths back to
+    their raw source files.
+    """
+    if config is None:
+        config = load_config(config_path)
+        
+    # Generate the identical splits (deterministic seeding)
+    loaders = create_data_loaders(config)
+    test_ds = loaders["test"].dataset
+    ela_paths = test_ds.image_paths
+    labels = test_ds.labels
+    
+    raw_dir = Path(config["dataset"]["root_dir"])
+    image_extensions = config["dataset"]["image_extensions"]
+    
+    raw_paths = []
+    for ela_p in ela_paths:
+        ela_path = Path(ela_p)
+        class_name = ela_path.parent.name
+        stem = ela_path.stem
+        
+        found = False
+        for ext in image_extensions:
+            possible_path = raw_dir / class_name / f"{stem}{ext}"
+            if possible_path.exists():
+                raw_paths.append(str(possible_path))
+                found = True
+                break
+                
+        if not found:
+            raise FileNotFoundError(
+                f"Could not trace ELA map back to raw image. "
+                f"Missing stem '{stem}' in {raw_dir / class_name}"
+            )
+            
+    return raw_paths, labels
