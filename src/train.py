@@ -15,6 +15,7 @@ Usage:
 import csv
 import logging
 import time
+import yaml
 from pathlib import Path
 from typing import Optional
 
@@ -27,6 +28,25 @@ from src.model import create_model
 from src.utils import get_device, load_config, seed_everything, setup_logging
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Loss Functions
+# ---------------------------------------------------------------------------
+
+class FocalLoss(nn.Module):
+    """Focal Loss for binary classification to address class imbalance."""
+    def __init__(self, alpha: float = 0.25, gamma: float = 2.0):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.ce = nn.CrossEntropyLoss(reduction="none")
+        
+    def forward(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        ce_loss = self.ce(inputs, targets)
+        pt = torch.exp(-ce_loss)
+        focal_loss = self.alpha * (1 - pt) ** self.gamma * ce_loss
+        return focal_loss.mean()
 
 
 # ---------------------------------------------------------------------------
@@ -79,6 +99,8 @@ def save_checkpoint(
     metrics: dict,
     backbone: str,
     checkpoint_dir: str,
+    config: dict,
+    run_id: str = "",
 ) -> str:
     """Save model checkpoint.
 
@@ -104,10 +126,17 @@ def save_checkpoint(
             "optimizer_state_dict": optimizer.state_dict(),
             "metrics": metrics,
             "backbone": backbone,
+            "run_id": run_id,
         },
         str(filename),
     )
-    logger.info("Checkpoint saved: %s", filename)
+    
+    # Save a copy of the exact config used for this checkpoint
+    config_filename = ckpt_path / f"{filename.stem}_config.yaml"
+    with open(config_filename, "w") as f:
+        yaml.dump(config, f, default_flow_style=False)
+        
+    logger.info("Checkpoint saved: %s (with config: %s)", filename, config_filename.name)
     return str(filename)
 
 
@@ -116,6 +145,9 @@ def train(
     *,
     config_path: str = "configs/config.yaml",
     backbone: Optional[str] = None,
+    use_lora: bool = False,
+    loss_fn_override: Optional[str] = None,
+    run_id: str = "",
 ) -> dict:
     """Full training run for a single backbone.
 
@@ -136,6 +168,7 @@ def train(
     lr = config["training"]["learning_rate"]
     weight_decay = config["training"]["weight_decay"]
     optimizer_name = config["training"]["optimizer"]
+    loss_fn_name = loss_fn_override or config["training"].get("loss", "cross_entropy")
     checkpoint_dir = config["paths"]["checkpoints"]
     results_dir = config["paths"]["results"]
 
@@ -151,11 +184,14 @@ def train(
     )
 
     # ── Model ────────────────────────────────────────────────────────────
-    model = create_model(config, backbone=backbone_name)
+    model = create_model(config, backbone=backbone_name, use_lora=use_lora)
     model = model.to(device)
 
     # ── Loss & Optimizer ─────────────────────────────────────────────────
-    criterion = nn.CrossEntropyLoss()
+    if loss_fn_name.lower() == "focal":
+        criterion = FocalLoss()
+    else:
+        criterion = nn.CrossEntropyLoss()
 
     if optimizer_name.lower() == "adam":
         optimizer = torch.optim.Adam(
@@ -175,7 +211,8 @@ def train(
     checkpoint_path = ""
 
     # CSV log
-    log_csv_path = Path(results_dir) / f"training_log_{backbone_name}.csv"
+    log_name = f"training_log_{run_id}.csv" if run_id else f"training_log_{backbone_name}.csv"
+    log_csv_path = Path(results_dir) / log_name
     log_csv_path.parent.mkdir(parents=True, exist_ok=True)
     csv_file = open(log_csv_path, "w", newline="")
     csv_writer = csv.writer(csv_file)
@@ -227,7 +264,7 @@ def train(
             best_epoch = epoch
             checkpoint_path = save_checkpoint(
                 model, optimizer, epoch, val_metrics,
-                backbone_name, checkpoint_dir,
+                backbone_name, checkpoint_dir, config, run_id,
             )
 
     csv_file.close()
