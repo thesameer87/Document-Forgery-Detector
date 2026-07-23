@@ -75,17 +75,16 @@ def apply_lora(model: nn.Module, lora_cfg: dict) -> nn.Module:
     """
     from peft import LoraConfig, get_peft_model
     
-    # 1. Enumerate all modules to find Conv2d leaf names
-    conv_leaf_names = set()
+    # 1. Enumerate all modules to find Conv2d exact paths in topological order
+    conv_paths = []
     for name, module in model.named_modules():
         if isinstance(module, nn.Conv2d):
-            # The last part of the dot-separated path is the leaf name PEFT matches against
-            leaf_name = name.split(".")[-1]
-            conv_leaf_names.add(leaf_name)
+            conv_paths.append(name)
             
-    # Filter to names containing 'conv' to avoid adapting everything (e.g. 'downsample')
-    # but still catch 'conv1', 'conv_pw', 'conv_dw', etc.
-    target_modules = [name for name in conv_leaf_names if "conv" in name.lower()]
+    # 2. Select only the deepest 30% of convolutions for true parameter efficiency
+    # Early layers capture generic features (edges), deep layers capture semantic forgery artifacts.
+    num_to_adapt = max(1, int(len(conv_paths) * 0.3)) if conv_paths else 0
+    target_modules = conv_paths[-num_to_adapt:] if num_to_adapt > 0 else []
     
     # Optionally append explicitly configured targets (like 'classifier')
     configured_targets = lora_cfg.get("target_modules", [])
@@ -94,9 +93,10 @@ def apply_lora(model: nn.Module, lora_cfg: dict) -> nn.Module:
             target_modules.append(ct)
             
     logger.info(
-        "LoRA dynamic target modules discovered for this backbone: %s", 
-        target_modules
+        "LoRA dynamic target strategy: adapting %d deepest Conv2d layers + %d configured targets.", 
+        num_to_adapt, len(configured_targets)
     )
+    logger.debug("Exact LoRA targets: %s", target_modules)
 
     peft_config = LoraConfig(
         r=lora_cfg["rank"],
