@@ -1,0 +1,53 @@
+# ==============================================================================
+# .gitignore — Document Forgery Detector
+# ==============================================================================
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+
+# ---------- Virtual Environments ----------
+venv/
+env/
+.venv/
+.env/
+
+# ---------- Jupyter ----------
+.ipynb_checkpoints/
+
+# ---------- IDE ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- Datasets (never commit) ----------
+data/raw/
+data/ela/
+data/corrupted/
+
+# ---------- Checkpoints & Results (never commit) ----------
+checkpoints/
+results/
+
+# ---------- Logs ----------
+*.log
+wandb/
+
+# ---------- Misc ----------
+*.zip
+*.tar.gz
+*.rar
+*.7z

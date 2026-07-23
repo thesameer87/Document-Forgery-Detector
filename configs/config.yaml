@@ -1,0 +1,91 @@
+# ============================================================
+# Document Forgery Detector - Configuration (SSOT)
+# ============================================================
+
+project:
+  name: "doc-forgery-detector"
+  version: "0.1.0"
+  description: "Image forgery detection using ELA + EfficientNet with LoRA fine-tuning"
+
+dataset:
+  name: "CASIA_v2"
+  root_dir: "data/raw"
+  ela_dir: "data/ela"
+  corrupted_dir: "data/corrupted"
+  classes:
+    - "authentic"
+    - "tampered"
+  image_extensions:
+    - ".jpg"
+    - ".png"
+    - ".tif"
+    - ".bmp"
+  train_split: 0.7
+  val_split: 0.15
+  test_split: 0.15
+  random_seed: 42
+  subset_size: null  # Set to an integer to use a documented subset
+
+ela:
+  quality: 90          # JPEG recompression quality for ELA
+  scale: 15            # ELA pixel difference amplification scale
+
+model:
+  backbone: "efficientnet_b0"
+  pretrained: true
+  num_classes: 2
+  input_size: 224
+
+lora:
+  rank: 8
+  alpha: 16
+  dropout: 0.1
+  target_modules:
+    - "classifier"
+
+training:
+  batch_size: 32
+  num_epochs: 25
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  optimizer: "adam"
+  scheduler: "cosine"
+  early_stopping_patience: 5
+  num_workers: 4
+  pin_memory: true
+  device: "auto"       # "auto", "cuda", or "cpu"
+
+augmentation:
+  train:
+    horizontal_flip: true
+    vertical_flip: false
+    random_crop: true
+    color_jitter: true
+    rotation_limit: 15
+    normalize:
+      mean: [0.485, 0.456, 0.406]
+      std:  [0.229, 0.224, 0.225]
+  val:
+    normalize:
+      mean: [0.485, 0.456, 0.406]
+      std:  [0.229, 0.224, 0.225]
+
+robustness:
+  jpeg_qualities: [70, 50, 30]
+  noise_levels: [0.01, 0.05, 0.1]
+  blur_kernels: [3, 5, 7]
+
+evaluation:
+  metrics:
+    - "accuracy"
+    - "precision"
+    - "recall"
+    - "f1_score"
+    - "auc_roc"
+  confusion_matrix: true
+  grad_cam: true
+
+paths:
+  checkpoints: "checkpoints/"
+  results: "results/"
+  logs: "results/logs/"
