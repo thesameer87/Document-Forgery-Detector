@@ -93,6 +93,28 @@ Edit that file — **do not hardcode values** in source modules.
 | 6   | Evaluation, robustness, failure analysis | ⬜    |
 | 7   | Documentation, testing, final polish   | ⬜      |
 
+## Results
+
+### Metrics
+
+| Model | Accuracy | Precision | Recall | F1 Score | AUC-ROC |
+|-------|----------|-----------|--------|----------|---------|
+| ResNet-18 | — | — | — | — | — |
+| EfficientNet-B0 | — | — | — | — | — |
+| EfficientNet-B0 + LoRA | — | — | — | — | — |
+
+### Robustness
+
+| Perturbation | Level | Accuracy |
+|--------------|-------|----------|
+| JPEG Compression | Q70 / Q50 / Q30 | — |
+| Gaussian Noise | σ 0.01 / 0.05 / 0.1 | — |
+| Gaussian Blur | k3 / k5 / k7 | — |
+
+### Failure Analysis
+
+*(To be populated after Day 6 — Grad-CAM visualizations, misclassification patterns, and edge-case discussion.)*
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).

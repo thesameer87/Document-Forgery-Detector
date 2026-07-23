@@ -49,8 +49,9 @@ training:
   learning_rate: 0.001
   weight_decay: 0.0001
   optimizer: "adam"
-  scheduler: "cosine"
-  early_stopping_patience: 5
+  early_stopping:
+    enabled: false     # Enable only when justified by experiment
+    patience: 5
   num_workers: 4
   pin_memory: true
   device: "auto"       # "auto", "cuda", or "cpu"
