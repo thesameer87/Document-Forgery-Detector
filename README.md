@@ -5,7 +5,27 @@ A highly robust, parameter-efficient pipeline for detecting digital image manipu
 ![Degradation Curve](results/degradation_curve.png)
 
 ## Project Overview
-This project addresses the critical issue of identity fraud in KYC (Know Your Customer) pipelines by detecting digital forgeries in uploaded document scans. It leverages Error Level Analysis (ELA) to expose invisible compression artifacts left behind during image splicing or copy-move operations. By coupling ELA with parameter-efficient convolutional neural networks, the system robustly flags manipulated regions even under adversarial conditions like blur, glare, and heavy compression.
+This project addresses the critical issue of identity fraud in KYC (Know Your Customer) pipelines by detecting digital forgeries in uploaded document scans. It leverages Error Level Analysis (ELA) to expose invisible compression artifacts left behind during image splicing or copy-move operations. By coupling ELA with transfer learning with parameter-efficient fine-tuning (LoRA), the system robustly flags manipulated regions even under corruptions like blur, glare, and heavy compression.
+
+## Key Features
+- Error Level Analysis (ELA) preprocessing
+- Transfer Learning (EfficientNet-B0 / ResNet18)
+- LoRA-based parameter-efficient fine-tuning
+- Robustness evaluation under blur, JPEG compression, and glare
+- Structured failure analysis with visual gallery
+- Experimental OCR + Vision-Language Model extension
+
+## Tech Stack
+- Python
+- PyTorch
+- timm
+- PEFT (LoRA)
+- OpenCV
+- Albumentations
+- scikit-learn
+- Matplotlib
+- Tesseract OCR (Experimental)
+- HuggingFace Transformers (Experimental)
 
 ## Architecture
 1. **Error Level Analysis (ELA)**: Extracts high-frequency compression artifacts, exposing regions that have been re-saved or spliced from different sources.
@@ -71,9 +91,6 @@ doc-forgery-detector/
 │   ├── ela_comparisons/
 │   ├── failure_analysis/
 │   └── logs/
-├── scripts/
-│   ├── download_casia.py
-│   └── generate_ela_demo.py
 ├── src/
 │   ├── corruptions.py
 │   ├── dataset.py
@@ -109,7 +126,7 @@ To run the full 4-run hyperparameter sweep:
 python -m src.run_experiments
 ```
 
-### 4. Adversarial Robustness
+### 4. Robustness Evaluation
 To evaluate the models against realistic document corruptions:
 ```bash
 python -m src.run_robustness
@@ -124,33 +141,25 @@ python -m src.failure_analysis
 ## Results
 
 ### a. Development Validation
-> Metrics below are from a 100-image subset of CASIA v2, trained for 2 epochs,
+> Metrics below are from a 500-image subset of CASIA v2, trained for 2 epochs,
 > used to validate the full pipeline (ELA → training → LoRA → robustness eval →
 > failure analysis) end-to-end before full-scale training.
 
 **Clean Data Performance**
 | Run ID | Backbone | Optimizer | Loss | Clean Acc | Clean F1 |
 |---|---|---|---|---|---|
-| exp_01 | ResNet18 | Adam | CrossEntropy | 0.3125 | 0.3529 |
-| exp_02 | ResNet18 | SGD | CrossEntropy | 0.3125 | 0.3529 |
-| exp_03 | EfficientNet-B0 | Adam | CrossEntropy | 0.5625 | 0.2222 |
-| exp_04 | EfficientNet-B0 | Adam | Focal | 0.5625 | 0.2222 |
+| exp_01 | ResNet18 | Adam | CrossEntropy | 0.5921 | 0.5974 |
+| exp_02 | ResNet18 | SGD | CrossEntropy | 0.5395 | 0.4444 |
+| exp_03 | EfficientNet-B0 | Adam | CrossEntropy | 0.6579 | 0.5938 |
+| exp_04 | EfficientNet-B0 | Adam | Focal | 0.6447 | 0.5846 |
 
-**Adversarial Robustness (Cross-Model Degradation)**
+**Robustness Evaluation (Cross-Model Degradation)**
 | Run ID | Backbone | Optimizer | Loss | Clean Acc | Clean F1 | Noisy Acc | Noisy F1 |
 |---|---|---|---|---|---|---|---|
-| exp_01 | ResNet18 | Adam | CrossEntropy | 0.3125 | 0.3529 | 0.5000 | 0.5556 |
-| exp_02 | ResNet18 | SGD | CrossEntropy | 0.3125 | 0.3529 | 0.5000 | 0.5556 |
-| exp_03 | EfficientNet-B0 | Adam | CrossEntropy | 0.5625 | 0.2222 | 0.4375 | 0.0000 |
-| exp_04 | EfficientNet-B0 | Adam | Focal | 0.5625 | 0.2222 | 0.4375 | 0.0000 |
-
-*Note: The Noisy F1 = 0.0000 likely reflects single-class collapse under corruption on this tiny dataset subset, pending full-dataset re-verification.*
-
-**LoRA vs Full Fine-Tuning Comparison (Planned Baseline)**
-| Run ID | Approach | Trainable Params | Clean Acc | Clean F1 |
-|---|---|---|---|---|
-| exp_04 | EfficientNet-B0 (LoRA) | ~199K | 0.5625 | 0.2222 |
-| baseline | EfficientNet-B0 (Full) | ~4.2M | TBD | TBD |
+| exp_01 | ResNet18 | Adam | CrossEntropy | 0.5921 | 0.5974 | 0.5526 | 0.3200 |
+| exp_02 | ResNet18 | SGD | CrossEntropy | 0.5395 | 0.4444 | 0.5132 | 0.3509 |
+| exp_03 | EfficientNet-B0 | Adam | CrossEntropy | 0.6579 | 0.5938 | 0.3816 | 0.4198 |
+| exp_04 | EfficientNet-B0 | Adam | Focal | 0.6447 | 0.5846 | 0.4079 | 0.4304 |
 
 ### b. Final Training (Planned)
 > The complete pipeline is configured for the full CASIA v2 dataset (12,617
@@ -159,20 +168,23 @@ python -m src.failure_analysis
 > once training completes.
 
 ## Failure Mode Analysis
-*Based on the 100-image development run. By analyzing the most confident false positives and false negatives, we heuristically infer the following primary failure modes:*
+*Based on the 500-image development run. By analyzing the most confident false positives and false negatives, we heuristically infer the following primary failure modes:*
 
 | Heuristically Inferred Failure Mode | Count | Likely Cause |
 |---|---|---|
-| Complex Textured Background | 3 | False texture cues disrupt the classifier |
-| Heavy JPEG Compression | 2 | ELA residual signal is heavily suppressed |
-| Strong Glare / Overexposure | 1 | Bright spots obscure manipulation artifacts |
-| Ambiguous / Indeterminate | 1 | Various |
+| Heavy JPEG Compression | 6 | ELA residual signal is heavily suppressed |
+| Complex Textured Background | 6 | False texture cues disrupt the classifier |
+| Ambiguous / Indeterminate | 5 | Various |
+| Strong Glare / Overexposure | 3 | Bright spots obscure manipulation artifacts |
+
+### Example Failure Analysis
+![Failure Example](results/failure_analysis/false_negative_00.png)
 
 ---
 > **Note**: The VLM/OCR explanation pipeline is located in `src/experimental_vlm.py`. It is an experimental demonstration only and is intentionally decoupled from the core training benchmarking suite.
 
 ## Limitations
-- **Dataset subset size**: Current metrics reflect a validation subset of 100 images and 2 epochs.
+- **Dataset subset size**: Current metrics reflect a validation subset of 500 images and 2 epochs.
 - **Metric instability**: Known F1 instability under corruption on the small subset.
 - **Corruptions**: Untested corruption types (e.g., physical print-and-scan attacks).
 - **Format constraints**: ELA assumes JPEG-compressed imagery; performance may degrade on heavily post-processed or losslessly compressed images.
