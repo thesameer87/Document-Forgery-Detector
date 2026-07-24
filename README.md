@@ -5,7 +5,7 @@ A highly robust, parameter-efficient pipeline for detecting digital image manipu
 ![Degradation Curve](results/degradation_curve.png)
 
 ## Project Overview
-This project addresses the critical issue of identity fraud in KYC (Know Your Customer) pipelines by detecting digital forgeries in uploaded document scans. It leverages Error Level Analysis (ELA) to expose invisible compression artifacts left behind during image splicing or copy-move operations. By coupling ELA with transfer learning with parameter-efficient fine-tuning (LoRA), the system robustly flags manipulated regions even under corruptions like blur, glare, and heavy compression.
+This project addresses the critical issue of identity fraud in KYC (Know Your Customer) pipelines by detecting digital forgeries in uploaded document scans. It leverages Error Level Analysis (ELA) to expose invisible compression artifacts left behind during image splicing or copy-move operations. By coupling ELA with transfer learning and parameter-efficient fine-tuning (LoRA), the system robustly detects manipulated regions even under image corruptions such as blur, glare, and heavy JPEG compression.
 
 ## Key Features
 - Error Level Analysis (ELA) preprocessing
@@ -53,6 +53,8 @@ This project addresses the critical issue of identity fraud in KYC (Know Your Cu
 ```
 
 ## Dataset
+CASIA v2 is a widely used academic benchmark for image tampering detection containing authentic and digitally manipulated images with copy-move and splicing forgeries.
+
 - **Name**: CASIA v2 Image Tampering Detection Dataset
 - **Split**: 70% Train, 15% Val, 15% Test
 - **Class Balance**: Authentic (Au) vs Tampered (Tp)
@@ -70,7 +72,7 @@ Total: 12,617
 |-----------|-------|
 | Image Size | 224x224 |
 | Batch Size | 32 |
-| Epochs | 25 (Planned) |
+| Epochs | 25 (Full-dataset training) |
 | Optimizer | Adam / SGD |
 | Learning Rate | 0.001 |
 | LoRA Rank | 8 |
