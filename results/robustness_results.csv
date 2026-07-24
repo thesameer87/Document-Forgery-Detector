@@ -1,0 +1,5 @@
+Exp ID,Backbone,Loss,Optimizer,Acc (Clean),F1 (Clean),Acc (Noisy),F1 (Noisy)
+exp_01,resnet18,cross_entropy,adam,0.5921,0.5974,0.5526,0.3200
+exp_02,resnet18,cross_entropy,sgd,0.5395,0.4444,0.5132,0.3509
+exp_03,efficientnet_b0,cross_entropy,adam,0.6579,0.5938,0.3816,0.4198
+exp_04,efficientnet_b0,focal,adam,0.6447,0.5846,0.4079,0.4304

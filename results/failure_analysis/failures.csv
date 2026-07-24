@@ -1,0 +1,21 @@
+filename,ground_truth,prediction,confidence,likely_failure_mode
+Au_art_00057.jpg,Authentic,Tampered,1.0000,Heavy JPEG Compression (Weak ELA Signal)
+Tp_D_NND_S_N_nat00015_cha00096_00634.tif,Tampered,Authentic,1.0000,Ambiguous / Indeterminate
+Tp_S_NND_S_N_sec20009_sec20009_02119.tif,Tampered,Authentic,1.0000,Complex Textured Background
+Tp_S_CNN_M_N_txt00010_txt00010_10844.jpg,Tampered,Authentic,0.9999,Complex Textured Background
+Au_nat_30287.jpg,Authentic,Tampered,0.9996,Heavy JPEG Compression (Weak ELA Signal)
+Tp_S_NRN_S_N_sec00061_sec00061_00729.tif,Tampered,Authentic,0.9993,Heavy JPEG Compression (Weak ELA Signal)
+Tp_S_NRD_S_N_cha00011_cha00011_10308.tif,Tampered,Authentic,0.9989,Ambiguous / Indeterminate
+Au_nat_30201.jpg,Authentic,Tampered,0.9989,Heavy JPEG Compression (Weak ELA Signal)
+Tp_S_NRN_S_B_nat20008_nat20008_01512.tif,Tampered,Authentic,0.9982,Ambiguous / Indeterminate
+Au_art_30120.jpg,Authentic,Tampered,0.9981,Heavy JPEG Compression (Weak ELA Signal)
+Tp_D_NRN_M_N_art00099_cha00028_11762.jpg,Tampered,Authentic,0.9951,Complex Textured Background
+Au_art_10005.jpg,Authentic,Tampered,0.9947,Strong Glare / Overexposure
+Au_nat_20068.jpg,Authentic,Tampered,0.9932,Strong Glare / Overexposure
+Tp_D_NRN_S_N_arc00015_ani00013_00235.tif,Tampered,Authentic,0.9902,Complex Textured Background
+Au_ani_20003.jpg,Authentic,Tampered,0.9861,Strong Glare / Overexposure
+Au_ani_30247.jpg,Authentic,Tampered,0.9202,Complex Textured Background
+Au_sec_30481.jpg,Authentic,Tampered,0.9102,Ambiguous / Indeterminate
+Au_sec_30624.jpg,Authentic,Tampered,0.8944,Heavy JPEG Compression (Weak ELA Signal)
+Tp_S_CRN_S_N_cha10143_cha10143_12227.jpg,Tampered,Authentic,0.8112,Ambiguous / Indeterminate
+Tp_S_CNN_S_N_txt00077_txt00077_01287.tif,Tampered,Authentic,0.7045,Complex Textured Background

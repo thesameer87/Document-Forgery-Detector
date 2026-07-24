@@ -118,7 +118,8 @@ def save_checkpoint(
     ckpt_path = Path(checkpoint_dir)
     ckpt_path.mkdir(parents=True, exist_ok=True)
 
-    filename = ckpt_path / f"{backbone}_best.pt"
+    prefix = run_id if run_id else backbone
+    filename = ckpt_path / f"{prefix}_best.pt"
     torch.save(
         {
             "epoch": epoch,

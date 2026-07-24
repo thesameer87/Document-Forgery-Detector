@@ -1,0 +1,5 @@
+run_id,backbone,optimizer,loss_fn,use_lora,val_acc_clean,val_f1_clean,best_epoch
+exp_01,resnet18,adam,cross_entropy,True,0.7067,0.7027,2
+exp_02,resnet18,sgd,cross_entropy,True,0.4933,0.4865,1
+exp_03,efficientnet_b0,adam,cross_entropy,True,0.7200,0.6557,2
+exp_04,efficientnet_b0,adam,focal,True,0.6933,0.6230,2

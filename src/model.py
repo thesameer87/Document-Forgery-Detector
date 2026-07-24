@@ -78,7 +78,9 @@ def apply_lora(model: nn.Module, lora_cfg: dict) -> nn.Module:
     # 1. Enumerate all modules to find Conv2d exact paths in topological order
     conv_paths = []
     for name, module in model.named_modules():
-        if isinstance(module, nn.Conv2d):
+        # Exclude depthwise convolutions (groups > 1) because PEFT requires rank to be 
+        # divisible by groups, which crashes on EfficientNet's depthwise convs.
+        if isinstance(module, nn.Conv2d) and module.groups == 1:
             conv_paths.append(name)
             
     # 2. Select only the deepest 30% of convolutions for true parameter efficiency

@@ -39,8 +39,9 @@ data/ela/
 data/corrupted/
 
 # ---------- Checkpoints & Results (never commit) ----------
-checkpoints/
-results/
+checkpoints/*.pt
+# Note: We want to commit the results/ folder (charts, CSVs, failure analysis images)
+# so it renders correctly on GitHub!
 
 # ---------- Logs ----------
 *.log
