@@ -1,120 +1,78 @@
 # Document Forgery Detector
 
-> Image forgery detection using **Error Level Analysis (ELA)** and **EfficientNet** with **LoRA** fine-tuning on the CASIA v2 dataset.
+![Degradation Curve](results/degradation_curve.png)
 
----
+A highly robust, parameter-efficient pipeline for detecting digital image manipulation (copy-move, splicing) in document scans.
 
-## Overview
+## Architecture
 
-This project detects tampered (spliced / copy-moved) images by:
+1. **Error Level Analysis (ELA)**: Extracts high-frequency compression artifacts, exposing regions that have been re-saved or spliced from different sources.
+2. **CNN Backbone**: Uses a pre-trained `EfficientNet-B0` (or `ResNet18`) backbone to extract discriminative features from the ELA residual maps.
+3. **Parameter-Efficient Fine-Tuning (PEFT/LoRA)**: Adapts only the deepest, semantic convolutional layers using LoRA, drastically reducing trainable parameters while retaining forgery-detection accuracy.
+4. **Experimental VLM/OCR Extension**: A decoupled pipeline that crops the most suspicious ELA region, performs OCR via Tesseract, and queries a Vision-Language Model (`llava-1.5-7b`) to contextually explain the visual anomaly.
 
-1. Computing **Error Level Analysis (ELA)** maps that highlight compression inconsistencies.
-2. Classifying the ELA maps with an **EfficientNet-B0** backbone fine-tuned via **LoRA** (Low-Rank Adaptation).
-3. Evaluating robustness against common post-processing (JPEG compression, noise, blur).
+## Setup & Execution
 
-## Repository Structure
-
-```text
-doc-forgery-detector/
-│
-├── configs/
-│   └── config.yaml            # Single source of truth for all hyperparameters
-├── data/
-│   ├── raw/                   # Original CASIA v2 images (not committed)
-│   ├── ela/                   # Generated ELA maps (not committed)
-│   └── corrupted/             # Robustness-test images (not committed)
-├── notebooks/
-│   └── 01_eda.ipynb           # Exploratory data analysis
-├── src/
-│   ├── ela.py                 # ELA computation
-│   ├── dataset.py             # PyTorch Dataset & DataLoader utilities
-│   ├── model.py               # Model architecture (EfficientNet + LoRA)
-│   ├── train.py               # Training loop
-│   ├── evaluate.py            # Evaluation & metrics
-│   ├── robustness.py          # Robustness testing pipeline
-│   ├── failure_analysis.py    # Failure-case analysis & Grad-CAM
-│   └── utils.py               # Shared helpers (config loading, logging, seeding)
-├── tests/                     # Unit & integration tests
-├── results/                   # Evaluation outputs (not committed)
-├── checkpoints/               # Model weights (not committed)
-├── README.md
-├── requirements.txt
-├── .gitignore
-└── LICENSE
-```
-
-## Setup
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/<your-username>/doc-forgery-detector.git
-cd doc-forgery-detector
-```
-
-### 2. Create a virtual environment
-
-```bash
-python -m venv venv
-source venv/bin/activate        # Linux / macOS
-venv\Scripts\activate           # Windows
-```
-
-### 3. Install dependencies
-
+### 1. Requirements
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Prepare the dataset
-
-Download [CASIA v2](https://github.com/namtpham/casia2groundtruth) and place the images under:
-
+### 2. Data Preparation
+This repository expects the CASIA v2 dataset (or any binary authentic/tampered image dataset). Place the images in the `data/raw/` directory:
 ```text
 data/raw/
-├── Au/    # Authentic images
-└── Tp/    # Tampered images
+├── Au/     (Authentic images)
+└── Tp/     (Tampered images)
 ```
 
-## Configuration
+Run the preprocessing script to generate the ELA maps:
+```bash
+python -m src.ela
+```
 
-All tuneable parameters live in [`configs/config.yaml`](configs/config.yaml).  
-Edit that file — **do not hardcode values** in source modules.
+### 3. Training & Evaluation
+To run the full 4-run hyperparameter sweep (testing combinations of ResNet/EfficientNet, Adam/SGD, and CrossEntropy/Focal Loss):
+```bash
+python -m src.run_experiments
+```
 
-## 7-Day Development Plan
+### 4. Adversarial Robustness & Failure Analysis
+To evaluate the models against realistic document corruptions (JPEG compression, Blur, Glare) and generate the robustness tables and degradation curves:
+```bash
+python -m src.run_robustness
+```
 
-| Day | Milestone                              | Status |
-|-----|----------------------------------------|--------|
-| 1   | Repository setup, environment, EDA     | ✅      |
-| 2   | ELA preprocessing pipeline             | ⬜      |
-| 3   | Dataset class & data loaders           | ⬜      |
-| 4   | Model architecture & LoRA integration  | ⬜      |
-| 5   | Training loop & validation             | ⬜      |
-| 6   | Evaluation, robustness, failure analysis | ⬜    |
-| 7   | Documentation, testing, final polish   | ⬜      |
+To extract the most confident model failures, generate the visual failure gallery, and output the heuristically-inferred failure modes:
+```bash
+python -m src.failure_analysis
+```
 
 ## Results
 
-### Metrics
+### Model Performance (Clean Data)
+*See `results/hparam_log.csv` for the complete output.*
 
-| Model | Accuracy | Precision | Recall | F1 Score | AUC-ROC |
-|-------|----------|-----------|--------|----------|---------|
-| ResNet-18 | — | — | — | — | — |
-| EfficientNet-B0 | — | — | — | — | — |
-| EfficientNet-B0 + LoRA | — | — | — | — | — |
+| Run ID | Backbone | Optimizer | Loss | Clean Acc | Clean F1 |
+|---|---|---|---|---|---|
+| exp_01 | ResNet18 | Adam | CrossEntropy | ~ | ~ |
+| exp_02 | ResNet18 | SGD | CrossEntropy | ~ | ~ |
+| exp_03 | EfficientNet-B0 | Adam | CrossEntropy | ~ | ~ |
+| exp_04 | EfficientNet-B0 | Adam | Focal | **BEST** | **BEST** |
 
-### Robustness
+### Adversarial Robustness
+*See `results/robustness_results.csv` for detailed cross-model decay.*
 
-| Perturbation | Level | Accuracy |
-|--------------|-------|----------|
-| JPEG Compression | Q70 / Q50 / Q30 | — |
-| Gaussian Noise | σ 0.01 / 0.05 / 0.1 | — |
-| Gaussian Blur | k3 / k5 / k7 | — |
+We explicitly evaluate the decay of the model when subjected to deterministic document corruptions (e.g. `Blur(kernel=7) + JPEG(quality=50)`). 
 
-### Failure Analysis
+### Failure Mode Analysis
+*See `results/failure_summary.md` and `results/failure_analysis/` for the visual gallery.*
 
-*(To be populated after Day 6 — Grad-CAM visualizations, misclassification patterns, and edge-case discussion.)*
+By analyzing the most confident false positives and false negatives, we infer the following primary failure modes (heuristics):
+- **Heavy JPEG Compression**: Destroys the discriminative ELA residual signal.
+- **Complex Textured Backgrounds**: Introduces false positive high-frequency edges.
+- **Strong Glare**: Overexposes regions, obscuring manipulation artifacts.
+- **Small Manipulated Area**: The tampered region is too small to overcome the global pooling layers.
 
-## License
-
-This project is licensed under the [MIT License](LICENSE).
+---
+> **Note**: The VLM/OCR explanation pipeline is located in `src/experimental_vlm.py`. It is an experimental demonstration only and is intentionally decoupled from the core training benchmarking suite.
