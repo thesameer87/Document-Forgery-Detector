@@ -113,7 +113,7 @@ def generate_degradation_curve(
     plt.plot(severities, results["jpeg"], marker="s", label="JPEG", linewidth=2)
     plt.plot(severities, results["glare"], marker="^", label="Glare", linewidth=2)
     
-    plt.title(f"Robustness Degradation Curve ({best_run_id})", fontsize=14, fontweight="bold")
+    plt.title("Robustness Degradation Curve", fontsize=14, fontweight="bold")
     plt.xlabel("Severity Level (1-5)", fontsize=12)
     plt.ylabel("Accuracy", fontsize=12)
     plt.xticks(severities)
