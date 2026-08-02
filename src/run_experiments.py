@@ -27,8 +27,8 @@ from src.utils import load_config, setup_logging
 
 logger = logging.getLogger(__name__)
 
-# The specific 4 runs requested
-EXPERIMENTS = [
+# The full sweep of 4 experiments (saved here for your reference)
+ALL_EXPERIMENTS = [
     {
         "run_id": "exp_01",
         "backbone": "resnet18",
@@ -47,6 +47,16 @@ EXPERIMENTS = [
         "optimizer": "adam",
         "loss": "cross_entropy",
     },
+    {
+        "run_id": "exp_04",
+        "backbone": "efficientnet_b0",
+        "optimizer": "adam",
+        "loss": "focal",
+    },
+]
+
+# The active experiment to run (only running exp_04 to save GPU time)
+EXPERIMENTS = [
     {
         "run_id": "exp_04",
         "backbone": "efficientnet_b0",

@@ -1,0 +1,101 @@
+augmentation:
+  train:
+    color_jitter: true
+    horizontal_flip: true
+    normalize:
+      mean:
+      - 0.485
+      - 0.456
+      - 0.406
+      std:
+      - 0.229
+      - 0.224
+      - 0.225
+    random_crop: true
+    rotation_limit: 15
+    vertical_flip: false
+  val:
+    normalize:
+      mean:
+      - 0.485
+      - 0.456
+      - 0.406
+      std:
+      - 0.229
+      - 0.224
+      - 0.225
+dataset:
+  classes:
+  - authentic
+  - tampered
+  corrupted_dir: data/corrupted
+  ela_dir: data/ela
+  image_extensions:
+  - .jpg
+  - .png
+  - .tif
+  - .bmp
+  name: CASIA_v2
+  random_seed: 42
+  root_dir: data/raw
+  subset_size: 500
+  test_split: 0.15
+  train_split: 0.7
+  val_split: 0.15
+ela:
+  quality: 90
+  scale: 15
+evaluation:
+  confusion_matrix: true
+  grad_cam: true
+  metrics:
+  - accuracy
+  - precision
+  - recall
+  - f1_score
+  - auc_roc
+lora:
+  alpha: 16
+  dropout: 0.1
+  rank: 8
+  target_modules:
+  - classifier
+model:
+  backbone: resnet18
+  input_size: 224
+  num_classes: 2
+  pretrained: true
+paths:
+  checkpoints: checkpoints/
+  logs: results/logs/
+  results: results/
+project:
+  description: Image forgery detection using ELA + EfficientNet with LoRA fine-tuning
+  name: doc-forgery-detector
+  version: 0.1.0
+robustness:
+  blur_kernels:
+  - 3
+  - 5
+  - 7
+  jpeg_qualities:
+  - 70
+  - 50
+  - 30
+  noise_levels:
+  - 0.01
+  - 0.05
+  - 0.1
+training:
+  batch_size: 32
+  device: auto
+  early_stopping:
+    enabled: false
+    patience: 5
+  learning_rate: 0.001
+  loss: cross_entropy
+  num_epochs: 2
+  num_workers: 4
+  optimizer: adam
+  pin_memory: true
+  weight_decay: 0.0001

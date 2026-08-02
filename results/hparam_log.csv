@@ -1,1 +1,2 @@
 run_id,backbone,optimizer,loss_fn,use_lora,val_acc_clean,val_f1_clean,best_epoch
+exp_04,efficientnet_b0,adam,focal,True,0.9091,0.8929,25

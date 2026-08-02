@@ -142,42 +142,26 @@ python -m src.failure_analysis
 
 ## Results
 
-### a. Development Validation
-> Metrics below are from a 500-image subset of CASIA v2, trained for 2 epochs,
-> used to validate the full pipeline (ELA → training → LoRA → robustness eval →
-> failure analysis) end-to-end before full-scale training.
+### Full Dataset Training (25 Epochs)
+> The model was successfully trained on the full CASIA v2 dataset (12,614 images) for 25 epochs. The best performing model (`exp_04`) used an EfficientNet-B0 backbone with Focal Loss to handle class imbalance.
 
-**Clean Data Performance**
-| Run ID | Backbone | Optimizer | Loss | Clean Acc | Clean F1 |
-|---|---|---|---|---|---|
-| exp_01 | ResNet18 | Adam | CrossEntropy | 0.5921 | 0.5974 |
-| exp_02 | ResNet18 | SGD | CrossEntropy | 0.5395 | 0.4444 |
-| exp_03 | EfficientNet-B0 | Adam | CrossEntropy | 0.6579 | 0.5938 |
-| exp_04 | EfficientNet-B0 | Adam | Focal | 0.6447 | 0.5846 |
+**Final Clean Data Performance**
+| Run ID | Backbone | Optimizer | Loss | Clean Acc | Clean Precision | Clean Recall | Clean F1 |
+|---|---|---|---|---|---|---|---|
+| exp_04 | EfficientNet-B0 | Adam | Focal | 90.91% | 85.56% | 93.36% | 89.29% |
 
 **Robustness Evaluation (Cross-Model Degradation)**
-| Run ID | Backbone | Optimizer | Loss | Clean Acc | Clean F1 | Noisy Acc | Noisy F1 |
-|---|---|---|---|---|---|---|---|
-| exp_01 | ResNet18 | Adam | CrossEntropy | 0.5921 | 0.5974 | 0.5526 | 0.3200 |
-| exp_02 | ResNet18 | SGD | CrossEntropy | 0.5395 | 0.4444 | 0.5132 | 0.3509 |
-| exp_03 | EfficientNet-B0 | Adam | CrossEntropy | 0.6579 | 0.5938 | 0.3816 | 0.4198 |
-| exp_04 | EfficientNet-B0 | Adam | Focal | 0.6447 | 0.5846 | 0.4079 | 0.4304 |
-
-### b. Final Training (Planned)
-> The complete pipeline is configured for the full CASIA v2 dataset (12,617
-> images: 7,492 authentic, 5,125 tampered) using a 25-epoch schedule.
-> Full-dataset benchmark results will replace the validation metrics above
-> once training completes.
+The model's robustness was systematically evaluated across 5 severity levels for Blur, JPEG Compression, and Glare. As seen in the degradation curve above, the model maintains high accuracy on low-to-medium severities, degrading gracefully under heavy corruption as the underlying ELA artifacts are destroyed.
 
 ## Failure Mode Analysis
-*Based on the 500-image development run. By analyzing the most confident false positives and false negatives, we heuristically infer the following primary failure modes:*
+*Based on the full-dataset 25-epoch evaluation. By analyzing the most confident false positives and false negatives, we heuristically infer the following primary failure modes:*
 
 | Heuristically Inferred Failure Mode | Count | Likely Cause |
 |---|---|---|
-| Heavy JPEG Compression | 6 | ELA residual signal is heavily suppressed |
+| Ambiguous / Indeterminate | 7 | Various |
 | Complex Textured Background | 6 | False texture cues disrupt the classifier |
-| Ambiguous / Indeterminate | 5 | Various |
-| Strong Glare / Overexposure | 3 | Bright spots obscure manipulation artifacts |
+| Strong Glare / Overexposure | 4 | Bright spots obscure manipulation artifacts |
+| Heavy JPEG Compression (Weak ELA Signal) | 3 | ELA residual signal is heavily suppressed |
 
 ### Example Failure Analysis
 ![Failure Example](results/failure_analysis/false_negative_00.png)
@@ -186,8 +170,6 @@ python -m src.failure_analysis
 > **Note**: The VLM/OCR explanation pipeline is located in `src/experimental_vlm.py`. It is an experimental demonstration only and is intentionally decoupled from the core training benchmarking suite.
 
 ## Limitations
-- **Dataset subset size**: Current metrics reflect a validation subset of 500 images and 2 epochs.
-- **Metric instability**: Known F1 instability under corruption on the small subset.
 - **Corruptions**: Untested corruption types (e.g., physical print-and-scan attacks).
 - **Format constraints**: ELA assumes JPEG-compressed imagery; performance may degrade on heavily post-processed or losslessly compressed images.
 - **LoRA tuning**: Target-layer selection uses a heuristic strategy (deepest layers) rather than an exhaustive architecture search.

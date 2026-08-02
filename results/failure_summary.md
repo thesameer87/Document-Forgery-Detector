@@ -4,7 +4,7 @@
 
 | Heuristically Inferred Failure Mode | Count | Likely Cause |
 |---|---|---|
-| Heavy JPEG Compression (Weak ELA Signal) | 6 | ELA residual signal is heavily suppressed |
+| Ambiguous / Indeterminate | 7 | Various |
 | Complex Textured Background | 6 | False texture cues disrupt the classifier |
-| Ambiguous / Indeterminate | 5 | Various |
-| Strong Glare / Overexposure | 3 | Bright spots obscure manipulation artifacts |
+| Strong Glare / Overexposure | 4 | Bright spots obscure manipulation artifacts |
+| Heavy JPEG Compression (Weak ELA Signal) | 3 | ELA residual signal is heavily suppressed |
