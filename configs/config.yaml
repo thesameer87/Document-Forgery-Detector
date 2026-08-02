@@ -24,7 +24,7 @@ dataset:
   val_split: 0.15
   test_split: 0.15
   random_seed: 42
-  subset_size: 500  # Reduced for quick pipeline testing
+  subset_size: null  # Changed from 500 to use the full dataset
 
 ela:
   quality: 90          # JPEG recompression quality for ELA
@@ -45,7 +45,7 @@ lora:
 
 training:
   batch_size: 32
-  num_epochs: 2
+  num_epochs: 25
   learning_rate: 0.001
   weight_decay: 0.0001
   optimizer: "adam"
